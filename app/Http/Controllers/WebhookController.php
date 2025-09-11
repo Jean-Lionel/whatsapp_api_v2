@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 class WebhookController extends Controller
 {
-    private $verifyToken = "MON_TOKEN_SECRET"; // le même que tu as configuré
+   // private $verifyToken = ; // le même que tu as configuré
     /**
      * Handle the incoming request.
      *
@@ -21,7 +21,7 @@ class WebhookController extends Controller
 
         \Log::info("Webhook verification: mode=$mode, challenge=$challenge, token=$token");
 
-        if ($mode === 'subscribe' && $token === $this->verifyToken) {
+        if ($mode === 'subscribe' && $token === env('WHATSAPP_VERIFY_TOKEN')) {
             \Log::info("WEBHOOK VERIFIED: " . $challenge);
             return response($challenge, 200);
         } else {
