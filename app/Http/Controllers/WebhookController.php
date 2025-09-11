@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class WebhookController extends Controller
 {
@@ -18,11 +19,10 @@ class WebhookController extends Controller
         $mode = $request->query('hub.mode');
         $challenge = $request->query('hub.challenge');
         $token = $request->query('hub.verify_token');
-
-        \Log::info("Webhook verification: mode=$mode, challenge=$challenge, token=$token");
+        Log::info("Webhook verification: mode=$mode, challenge=$challenge, token=$token");
 
         if ($mode === 'subscribe' && $token === env('WHATSAPP_VERIFY_TOKEN')) {
-            \Log::info("WEBHOOK VERIFIED: " . $challenge);
+            Log::info("WEBHOOK VERIFIED: " . $challenge);
             return response($challenge, 200);
         } else {
             return response('', 403);

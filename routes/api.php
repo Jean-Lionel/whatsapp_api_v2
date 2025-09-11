@@ -10,4 +10,4 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 
-Route::post('/webhook', [WebhookController::class, 'handle']);
+Route::get('/webhook', [WebhookController::class, 'handle']);
