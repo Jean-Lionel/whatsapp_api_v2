@@ -21,7 +21,7 @@ class WebhookController extends Controller
         $challenge = $request->query('hub.challenge');
         $token = $request->query('hub.verify_token');
 
-        Log::info("Request: ", var_dump($request));
+        Log::info("Request: " . json_encode($request));
 
         Log::info("Mode: " . $mode);
         Log::info("Challenge: " . $challenge);
