@@ -17,24 +17,8 @@ class WebhookController extends Controller
      */
     public function handle(Request $request)
     {
-        $mode = $request->query('hub.mode');
-        $challenge = $request->query('hub.challenge');
-        $token = $request->query('hub.verify_token');
-
-        Log::info("Request: " . json_encode($request));
-
-        Log::info("Mode: " . $mode);
-        Log::info("Challenge: " . $challenge);
-        Log::info("Token: " . $token);
-        Log::info("WHATSAPP_VERIFY_TOKEN: " . env('WHATSAPP_VERIFY_TOKEN'));
-
-
-        if ($mode === 'subscribe' && $token === env('WHATSAPP_VERIFY_TOKEN')) {
-            Log::info("WEBHOOK VERIFIED: " . $challenge);
-            return response($challenge, 200);
-        } else {
-            return response('', 403);
-        }
+          $data = $request->all();
+        Log::info("Request: " . json_encode($data));
     }
 
 
