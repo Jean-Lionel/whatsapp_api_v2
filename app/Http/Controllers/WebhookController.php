@@ -21,7 +21,8 @@ class WebhookController extends Controller
           Log::info("Request: " . json_encode($data));
 
           return response()->json([
-            "msg" => "Bonjour je suis en"
+            "msg" => "Bonjour je suis en", 
+            "data" => $data
           ]);
     }
 
