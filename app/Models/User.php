@@ -45,4 +45,13 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class)->withPivot('unread_count')->withTimestamps();
+    }
+
+    public function contacts()
+    {
+        return $this->hasMany(Contact::class);
+    }
 }
