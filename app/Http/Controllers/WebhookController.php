@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\WhatsappData;
 use Illuminate\Console\Command as ConsoleCommand;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -18,14 +19,10 @@ class WebhookController extends Controller
     public function handle(Request $request)
     {
           $data = $request->all();
-          Log::info($data);
-
-          return response()->json([
-            "msg" => "Bonjour je suis en", 
-            "data" => $data
+          Log::info("Message received");
+          WhatsappData::create([
+              'body' => $data
           ]);
     }
-
-
 
 }
