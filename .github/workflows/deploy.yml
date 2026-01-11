@@ -1,0 +1,31 @@
+name: Remote SSH Command
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute remote SSH commands using password
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{secrets.SSH_HOST}}
+          username: ${{secrets.SSH_USER}}
+          password: ${{secrets.SSH_PASSWORD}}
+          port: ${{secrets.SSH_PORT}}
+          script: |
+            cd ${{secrets.WORK_DIR}}
+            git config pull.rebase true
+            # Mettre à jour la branche distante avec rebase en utilisant le token GitHub
+            git reset --hard HEAD
+            git clean -f -d
+            git checkout ${{secrets.MAIN_BRANCH}}
+            git config --global --add safe.directory ${{secrets.WORK_DIR}}
+            git pull origin ${{secrets.MAIN_BRANCH}}
+            echo "Deployed successfully" >> deploy.log
+
+
+
