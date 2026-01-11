@@ -22,3 +22,4 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::post('/webhook', [WebhookController::class, 'handle']);
+
