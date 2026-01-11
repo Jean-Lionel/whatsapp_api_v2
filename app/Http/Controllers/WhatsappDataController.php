@@ -13,7 +13,7 @@ class WhatsappDataController extends Controller
      */
     public function index()
     {
-        $whatsappData = WhatsappData::all();
+        $whatsappData = WhatsappData::latest()->paginate(10);
         return response()->json($whatsappData);
     }
 
