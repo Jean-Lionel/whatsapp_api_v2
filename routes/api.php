@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WhatsappDataController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\MessageController;
 
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -19,6 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::apiResource('whatsapp-data', WhatsappDataController::class);
     Route::apiResource('contacts', ContactController::class);
+    Route::apiResource('messages', MessageController::class);
     //Side Bar Contact 
     Route::get('side_bar_contacts', [ContactController::class, 'sideBarContacts']);
 
