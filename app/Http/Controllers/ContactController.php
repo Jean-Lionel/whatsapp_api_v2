@@ -18,7 +18,8 @@ class ContactController extends Controller
             'phone' => $m->to_number ?? null,
             'last_message' => $m->body,
             'last_message_at' => $m->created_at,
-            'unread_count' => rand(0, 10)
+            'unread_count' => rand(0, 10),
+            'avatar' => 'https://ui-avatars.com/api/?name='.($m->contact->name ?? $m->to_number).'&background=0D8ABC&color=fff',
             ])
             ->values();
             
