@@ -8,6 +8,14 @@ use App\Models\Contact;
 
 class ContactController extends Controller
 {
+    public function sideBarContacts(Request $request){
+
+        $contacts = Contact::with('user')
+        ->where('user_id', Auth::id())
+        ->orderBy('name', 'asc')->paginate(10);
+
+        return response()->json($contacts);
+    }
     public function index(Request $request)
     {
         $user = Auth::user();

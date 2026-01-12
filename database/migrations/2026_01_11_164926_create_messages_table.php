@@ -15,7 +15,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('conversation_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('from')->nullable();
+            $table->string('to')->nullable();
+            $table->foreignId('contact_id')->nullable();
             $table->text('text')->nullable();
+            $table->string('media_type')->nullable();
+            $table->string('media_url')->nullable();
+            $table->string('media_id')->nullable();
+            $table->boolean('is_read')->default(false);
+            $table->boolean('is_me')->default(false);
             $table->timestamps();
         });
     }
