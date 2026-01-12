@@ -31,8 +31,8 @@ class ContactController extends Controller
         $request->validate([
             'name' => 'required|string',
             'country_code' => 'nullable|string',
-            'phone' => 'nullable|string',
-            'email' => 'nullable|email',
+            'phone' => 'nullable|string|unique:contacts,phone',
+            'email' => 'nullable|email|unique:contacts,email',
         ]);
 
         $user = Auth::user();
