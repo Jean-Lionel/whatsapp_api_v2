@@ -24,6 +24,8 @@ Route::middleware('auth:sanctum')->group(function () {
     //Side Bar Contact 
     Route::get('side_bar_contacts', [ContactController::class, 'sideBarContacts']);
 
+    Route::get('message_phone/{phone}', [MessageController::class,'messagePhone']);
+
 
 });
 

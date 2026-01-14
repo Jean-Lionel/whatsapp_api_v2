@@ -15,4 +15,18 @@ class Contact extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function getFullPhoneAttribute(): ?string
+    {
+        if (!$this->phone) {
+            return null;
+        }
+
+        $countryCode = $this->country_code ? ltrim($this->country_code, '+') : '';
+        $phone = ltrim($this->phone, '0');
+
+        return $countryCode . $phone;
+    }
+
+    protected $appends = ['full_phone'];
 }

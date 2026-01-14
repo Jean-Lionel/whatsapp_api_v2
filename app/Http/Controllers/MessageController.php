@@ -3,10 +3,35 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Models\Contact;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class MessageController extends Controller
 {
+
+    public function messagePhone($phone){
+        $contact = Contact::where('user_id', Auth::id())
+            ->get()
+            ->first(fn ($c) => $c->full_phone === $phone);
+
+        if ($contact) {
+            $messages = Message::where('to_number', $contact->full_phone)
+                ->orWhere('from_number', $contact->full_phone)
+                ->latest()
+                ->paginate(15);
+        } else {
+            $messages = Message::where('to_number', $phone)
+                ->orWhere('from_number', $phone)
+                ->latest()
+                ->paginate(15);
+        }
+
+        return response()->json([
+            'contact' => $contact,
+            'messages' => $messages,
+        ]);
+    }
     /**
      * Display a listing of the resource.
      */

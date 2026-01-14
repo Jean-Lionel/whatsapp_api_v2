@@ -24,7 +24,7 @@ class ContactController extends Controller
             ->values();
             
             $page = request('page', 1);
-            $perPage = 20;
+            $perPage = 15;
             
             $contacts = new LengthAwarePaginator(
                 $collection->forPage($page, $perPage),
