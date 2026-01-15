@@ -17,12 +17,15 @@ class WhatsAppService
 
     protected string $phoneNumber;
 
+    protected string $businessAccountId;
+
     public function __construct()
     {
         $this->apiUrl = config('services.whatsapp.api_url');
         $this->apiToken = config('services.whatsapp.api_token');
         $this->phoneId = config('services.whatsapp.phone_id');
         $this->phoneNumber = config('services.whatsapp.phone_number');
+        $this->businessAccountId = config('services.whatsapp.business_account_id');
     }
 
     /**
@@ -62,7 +65,7 @@ class WhatsAppService
             ],
         ];
 
-        if (! empty($components)) {
+        if (!empty($components)) {
             $payload['template']['components'] = $components;
         }
 
@@ -122,7 +125,7 @@ class WhatsAppService
      */
     public function markAsRead(string $messageId): bool
     {
-        $url = $this->apiUrl.$this->phoneId.'/messages';
+        $url = $this->apiUrl . $this->phoneId . '/messages';
 
         $payload = [
             'messaging_product' => 'whatsapp',
@@ -150,7 +153,7 @@ class WhatsAppService
      */
     protected function sendRequest(array $payload, string $to, string $body, string $type = 'text'): array
     {
-        $url = $this->apiUrl.$this->phoneId.'/messages';
+        $url = $this->apiUrl . $this->phoneId . '/messages';
 
         try {
             $response = Http::withToken($this->apiToken)
@@ -161,10 +164,10 @@ class WhatsAppService
             if ($response->successful()) {
                 // Sauvegarder le message en base de données
                 $message = Message::create([
-                    'wa_message_id' => $responseData['messages'][0]['id'] ?? 'wamid.'.Str::random(20),
+                    'wa_message_id' => $responseData['messages'][0]['id'] ?? 'wamid.' . Str::random(20),
                     'conversation_id' => null,
                     'direction' => 'out',
-                    'from_number' => '+'.$this->phoneNumber,
+                    'from_number' => '+' . $this->phoneNumber,
                     'to_number' => $this->formatPhoneNumber($to),
                     'type' => $type,
                     'body' => $body,
@@ -222,6 +225,67 @@ class WhatsAppService
      */
     public function getPhoneNumber(): string
     {
-        return '+'.$this->phoneNumber;
+        return '+' . $this->phoneNumber;
+    }
+
+    /**
+     * Récupérer les templates disponibles depuis WhatsApp
+     */
+    public function getAvaliableTemplate(): array
+    {
+        $url = $this->apiUrl . $this->businessAccountId . '/message_templates';
+
+        try {
+            $response = Http::withToken($this->apiToken)
+                ->get($url);
+
+            $responseData = $response->json();
+
+            if ($response->successful()) {
+                $templates = [];
+
+                if (isset($responseData['data']) && is_array($responseData['data'])) {
+                    foreach ($responseData['data'] as $template) {
+                        $templates[] = [
+                            'id' => $template['id'] ?? null,
+                            'name' => $template['name'] ?? null,
+                            'status' => $template['status'] ?? null,
+                            'category' => $template['category'] ?? null,
+                            'language' => $template['language'] ?? null,
+                            'components' => $template['components'] ?? [],
+                            'created_at' => $template['created_at'] ?? null,
+                        ];
+                    }
+                }
+
+                Log::info('WhatsApp templates retrieved', ['count' => count($templates)]);
+
+                return [
+                    'success' => true,
+                    'templates' => $templates,
+                    'paging' => $responseData['paging'] ?? null,
+                ];
+            }
+
+            Log::error('WhatsApp API error getting templates', [
+                'response' => $responseData,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $responseData['error']['message'] ?? 'Unknown error',
+                'templates' => [],
+            ];
+        } catch (\Exception $e) {
+            Log::error('WhatsApp get templates error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'templates' => [],
+            ];
+        }
     }
 }

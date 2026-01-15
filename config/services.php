@@ -42,6 +42,7 @@ return [
         'phone_id' => env('WHATSAPP_API_PHONE_ID'),
         'phone_number' => env('WHATSAPP_API_PHONE_NUMBER'),
         'business_id' => env('WHATSAPP_API_BUSINESS_ID'),
+        'business_account_id' => env('WHATSAPP_API_BUSINESS_ID'),
         'verify_token' => env('WHATSAPP_VERIFY_TOKEN', 'whatsapp_webhook_token'),
     ],
 

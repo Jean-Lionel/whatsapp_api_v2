@@ -14,6 +14,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::apiResource('whatsapp-data', WhatsappDataController::class);
+    Route::get('whatsapp-templates', [WhatsappDataController::class, 'getTemplates']);
     Route::apiResource('contacts', ContactController::class);
     Route::apiResource('messages', MessageController::class);
     // Side Bar Contact
