@@ -80,36 +80,88 @@ class MessageController extends Controller
     {
         $validated = $request->validate([
             'to' => 'required|string',
-            'message' => 'required|string',
-            'type' => 'in:text,template,image,document',
+            'type' => 'required|in:text,template,image,document',
+            'message' => 'required_if:type,text,image,document|string|nullable',
+            'template_name' => 'required_if:type,template|string|nullable',
+            'language' => 'required_if:type,template|string|nullable',
+            'parameters' => 'sometimes|array|nullable',
+            'filename' => 'sometimes|string|nullable',
+            'caption' => 'sometimes|string|nullable',
         ]);
 
-        $type = $validated['type'] ?? 'text';
+        try {
+            $type = $validated['type'];
+            $to = $validated['to'];
 
-        $result = match ($type) {
-            'text' => $this->whatsAppService->sendTextMessage($validated['to'], $validated['message']),
-            default => $this->whatsAppService->sendTextMessage($validated['to'], $validated['message']),
-        };
+            $result = match ($type) {
+                'text' => $this->whatsAppService->sendTextMessage(
+                    $to,
+                    $validated['message']
+                ),
+                'template' => $this->sendTemplateMessage(
+                    $to,
+                    $validated['template_name'],
+                    $validated['language'],
+                    $validated['parameters'] ?? []
+                ),
+                'image' => $this->whatsAppService->sendImage(
+                    $to,
+                    $validated['message'],
+                    $validated['caption'] ?? null
+                ),
+                'document' => $this->whatsAppService->sendDocument(
+                    $to,
+                    $validated['message'],
+                    $validated['filename'] ?? null,
+                    $validated['caption'] ?? null
+                ),
+                default => throw new \Exception('Invalid message type'),
+            };
 
-        if ($result['success']) {
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => [
+                        'id' => $result['message']->id,
+                        'text' => $result['message']->body,
+                        'time' => $result['message']->created_at->format('H:i'),
+                        'date' => $result['message']->created_at->format('Y-m-d'),
+                        'isMine' => true,
+                        'status' => $result['message']->status,
+                        'type' => $result['message']->type,
+                    ],
+                ]);
+            }
+
             return response()->json([
-                'success' => true,
-                'message' => [
-                    'id' => $result['message']->id,
-                    'text' => $result['message']->body,
-                    'time' => $result['message']->created_at->format('H:i'),
-                    'date' => $result['message']->created_at->format('Y-m-d'),
-                    'isMine' => true,
-                    'status' => $result['message']->status,
-                    'type' => $result['message']->type,
-                ],
-            ]);
+                'success' => false,
+                'error' => $result['error'],
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Envoyer un message template avec paramètres
+     */
+    private function sendTemplateMessage(string $to, string $templateName, string $language, array $parameters = []): array
+    {
+        // Construire les composants pour le template
+        $components = [];
+
+        if (!empty($parameters)) {
+            $components[] = [
+                'type' => 'body',
+                'parameters' => array_map(fn($param) => ['type' => 'text', 'text' => $param], $parameters),
+            ];
         }
 
-        return response()->json([
-            'success' => false,
-            'error' => $result['error'],
-        ], 422);
+        // Appeler la méthode sendTemplate du service
+        return $this->whatsAppService->sendTemplate($to, $templateName, $language, $components);
     }
 
     /**

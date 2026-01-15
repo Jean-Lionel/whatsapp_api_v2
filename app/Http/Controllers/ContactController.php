@@ -12,13 +12,14 @@ class ContactController extends Controller
 {
     public function sideBarContacts(Request $request)
     {
-        $adminNumber = '+25779000001';
+       // $adminNumber = '+25779000001';
 
         // Sous-requête pour obtenir l'ID du dernier message par numéro de contact
         $latestMessagesSubquery = Message::query()
             ->select(DB::raw('MAX(id) as id'))
-            ->where('direction', 'in')
-            ->groupBy('from_number');
+           // ->where('direction', 'in')
+            ->groupBy('to_number');
+       // return $latestMessagesSubquery->get();
 
         // Requête principale avec pagination native
         $contacts = Message::query()
@@ -27,15 +28,15 @@ class ContactController extends Controller
             })
             ->select([
                 'messages.id',
-                'messages.from_number as phone',
-                'messages.from_number as name',
+                'messages.to_number as phone',
+                'messages.to_number as name',
                 'messages.body as last_message',
                 'messages.created_at as last_message_at',
             ])
             ->selectSub(
                 Message::query()
                     ->selectRaw('COUNT(*)')
-                    ->whereColumn('from_number', 'messages.from_number')
+                    ->whereColumn('to_number', 'messages.to_number')
                     ->where('direction', 'in')
                     ->where('status', '!=', 'read'),
                 'unread_count'
