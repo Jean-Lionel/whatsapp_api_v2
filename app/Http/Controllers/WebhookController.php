@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Contact;
 use App\Models\Message;
 use App\Models\WhatsappData;
 use Carbon\Carbon;
@@ -129,10 +130,15 @@ class WebhookController extends Controller
             ? Carbon::createFromTimestamp($messageData['timestamp'])
             : now();
 
+        // Rechercher le contact par numéro de téléphone
+        $fromNumber = $messageData['from'];
+        $contact = $this->findContactByPhone($fromNumber);
+
         $message = Message::create([
+            'contact_id' => $contact?->id,
             'wa_message_id' => $messageData['id'],
             'direction' => 'in',
-            'from_number' => $messageData['from'],
+            'from_number' => $fromNumber,
             'to_number' => $businessPhone ?? '',
             'type' => $this->mapMessageType($type),
             'body' => $body,
@@ -141,7 +147,24 @@ class WebhookController extends Controller
             'sent_at' => $sentAt,
         ]);
 
-        Log::info('Message stored', ['wa_message_id' => $messageData['id']]);
+        Log::info('Message stored', [
+            'wa_message_id' => $messageData['id'],
+            'contact_id' => $contact?->id,
+        ]);
+    }
+
+    /**
+     * Recherche un contact par son numéro de téléphone
+     */
+    protected function findContactByPhone(string $phone): ?Contact
+    {
+        $cleanPhone = ltrim($phone, '+');
+        $lastDigits = substr($cleanPhone, -9);
+
+        return Contact::where(function ($query) use ($cleanPhone, $lastDigits) {
+            $query->whereRaw("CONCAT(REPLACE(country_code, '+', ''), LTRIM(phone, '0')) = ?", [$cleanPhone])
+                ->orWhere('phone', 'LIKE', '%'.$lastDigits);
+        })->first();
     }
 
     /**

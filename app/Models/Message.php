@@ -10,6 +10,7 @@ class Message extends Model
     use HasFactory;
 
     protected $fillable = [
+        'contact_id',
         'wa_message_id',
         'conversation_id',
         'direction',
@@ -20,7 +21,7 @@ class Message extends Model
         'payload',
         'status',
         'sent_at',
-        'read_at'
+        'read_at',
     ];
 
     protected $casts = [
@@ -38,6 +39,4 @@ class Message extends Model
     {
         return $this->belongsTo(Conversation::class);
     }
-
-
 }

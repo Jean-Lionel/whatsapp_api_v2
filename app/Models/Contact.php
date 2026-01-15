@@ -9,7 +9,7 @@ class Contact extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'name', 'country_code', 'phone', 'email' ];
+    protected $fillable = ['user_id', 'name', 'country_code', 'phone', 'email'];
 
     public function user()
     {
@@ -18,21 +18,31 @@ class Contact extends Model
 
     public function getFullPhoneAttribute(): ?string
     {
-        if (!$this->phone) {
+        if (! $this->phone) {
             return null;
         }
 
         $countryCode = $this->country_code ? ltrim($this->country_code, '+') : '';
         $phone = ltrim($this->phone, '0');
 
-        return $countryCode . $phone;
+        return $countryCode.$phone;
     }
 
     public function whatsappGroups()
     {
         return $this->belongsToMany(WhatsappGroup::class, 'whatsapp_group_contacts')
-                    ->withPivot('is_admin')
-                    ->withTimestamps();
+            ->withPivot('is_admin')
+            ->withTimestamps();
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    public function lastMessage()
+    {
+        return $this->hasOne(Message::class)->latestOfMany();
     }
 
     protected $appends = ['full_phone'];

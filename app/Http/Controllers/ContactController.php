@@ -4,24 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Contact;
 use App\Models\Message;
+use App\Models\WhatsappGroup;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ContactController extends Controller
 {
     public function sideBarContacts(Request $request)
     {
-       // $adminNumber = '+25779000001';
-
-        // Sous-requête pour obtenir l'ID du dernier message par numéro de contact
         $latestMessagesSubquery = Message::query()
             ->select(DB::raw('MAX(id) as id'))
-           // ->where('direction', 'in')
             ->groupBy('to_number');
-       // return $latestMessagesSubquery->get();
 
-        // Requête principale avec pagination native
         $contacts = Message::query()
             ->joinSub($latestMessagesSubquery, 'latest', function ($join) {
                 $join->on('messages.id', '=', 'latest.id');
@@ -44,7 +38,6 @@ class ContactController extends Controller
             ->orderBy('messages.created_at', 'desc')
             ->paginate(15);
 
-        // Ajouter l'avatar à chaque contact
         $contacts->getCollection()->transform(function ($contact) {
             $contact->avatar = 'https://ui-avatars.com/api/?name='.urlencode($contact->name).'&background=0D8ABC&color=fff';
 
@@ -56,8 +49,7 @@ class ContactController extends Controller
 
     public function index(Request $request)
     {
-        $user = Auth::user();
-        $query = $user->contacts();
+        $query = Contact::query();
 
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -82,9 +74,7 @@ class ContactController extends Controller
             'email' => 'nullable|email|unique:contacts,email',
         ]);
 
-        $user = Auth::user();
-
-        $contact = $user->contacts()->create([
+        $contact = Contact::create([
             'name' => $request->name,
             'country_code' => $request->country_code,
             'phone' => $request->phone,
@@ -96,19 +86,11 @@ class ContactController extends Controller
 
     public function show(Contact $contact)
     {
-        if ($contact->user_id !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
         return response()->json($contact);
     }
 
     public function update(Request $request, Contact $contact)
     {
-        if ($contact->user_id !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
         $request->validate([
             'name' => 'sometimes|required|string',
             'country_code' => 'nullable|string',
@@ -123,12 +105,75 @@ class ContactController extends Controller
 
     public function destroy(Contact $contact)
     {
-        if ($contact->user_id !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
         $contact->delete();
 
         return response()->json(['message' => 'Contact deleted']);
+    }
+
+    /**
+     * Sidebar combinee: contacts + groupes tries par dernier message
+     */
+    public function sidebar(Request $request)
+    {
+        // Tous les contacts
+        $contacts = Contact::all()->map(function ($contact) {
+            // Chercher le dernier message pour ce contact
+            $lastMessage = Message::where('contact_id', $contact->id)
+                ->orWhere(function ($q) use ($contact) {
+                    $fullPhone = $contact->full_phone;
+                    if ($fullPhone) {
+                        $q->where('from_number', $fullPhone)
+                            ->orWhere('to_number', $fullPhone);
+                    }
+                })
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // Compter les messages non lus
+            $unreadCount = Message::where(function ($q) use ($contact) {
+                $q->where('contact_id', $contact->id);
+                $fullPhone = $contact->full_phone;
+                if ($fullPhone) {
+                    $q->orWhere('from_number', $fullPhone);
+                }
+            })
+                ->where('direction', 'in')
+                ->whereNull('read_at')
+                ->count();
+
+            return [
+                'id' => $contact->id,
+                'type' => 'contact',
+                'name' => $contact->name,
+                'phone' => $contact->full_phone,
+                'avatar' => 'https://ui-avatars.com/api/?name='.urlencode($contact->name).'&background=25d366&color=fff',
+                'last_message' => $lastMessage?->body,
+                'last_message_at' => $lastMessage?->created_at,
+                'unread_count' => $unreadCount,
+            ];
+        });
+
+        // Tous les groupes
+        $groups = WhatsappGroup::query()
+            ->withCount('contacts as member_count')
+            ->with('lastMessage')
+            ->get()
+            ->map(fn ($group) => [
+                'id' => $group->id,
+                'type' => 'group',
+                'name' => $group->name,
+                'member_count' => $group->member_count,
+                'avatar' => null,
+                'last_message' => $group->lastMessage?->body,
+                'last_message_at' => $group->lastMessage?->created_at,
+                'unread_count' => 0,
+            ]);
+
+        // Fusionner et trier par date du dernier message
+        $sidebar = $contacts->concat($groups)
+            ->sortByDesc(fn ($item) => $item['last_message_at'] ?? '1970-01-01')
+            ->values();
+
+        return response()->json($sidebar);
     }
 }

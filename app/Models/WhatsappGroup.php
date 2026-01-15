@@ -12,7 +12,7 @@ class WhatsappGroup extends Model
         'wa_group_id',
         'invite_link',
         'icon_url',
-        'user_id'
+        'user_id',
     ];
 
     /**
@@ -21,8 +21,8 @@ class WhatsappGroup extends Model
     public function contacts()
     {
         return $this->belongsToMany(Contact::class, 'whatsapp_group_contacts')
-                    ->withPivot('is_admin')
-                    ->withTimestamps();
+            ->withPivot('is_admin')
+            ->withTimestamps();
     }
 
     /**
@@ -31,7 +31,7 @@ class WhatsappGroup extends Model
     public function addContact(Contact $contact, bool $isAdmin = false)
     {
         return $this->contacts()->syncWithoutDetaching([
-            $contact->id => ['is_admin' => $isAdmin]
+            $contact->id => ['is_admin' => $isAdmin],
         ]);
     }
 
@@ -54,8 +54,23 @@ class WhatsappGroup extends Model
     /**
      * Check if a contact is in the group.
      */
-    public function hasContact($contactId)
+    public function hasContact($contactId): bool
     {
         return $this->contacts()->where('contact_id', $contactId)->exists();
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(GroupMessage::class);
+    }
+
+    public function lastMessage()
+    {
+        return $this->hasOne(GroupMessage::class)->latestOfMany();
     }
 }
