@@ -81,42 +81,76 @@ class MessageController extends Controller
         $validated = $request->validate([
             'to' => 'required|string',
             'type' => 'required|in:text,template,image,document',
-            'message' => 'required_if:type,text,image,document|string|nullable',
+            'message' => 'nullable|string',
             'template_name' => 'required_if:type,template|string|nullable',
             'language' => 'required_if:type,template|string|nullable',
             'parameters' => 'sometimes|array|nullable',
             'filename' => 'sometimes|string|nullable',
             'caption' => 'sometimes|string|nullable',
+            'file' => 'sometimes|file|max:65000', // ~64MB
         ]);
 
         try {
             $type = $validated['type'];
             $to = $validated['to'];
 
-            $result = match ($type) {
-                'text' => $this->whatsAppService->sendTextMessage(
-                    $to,
-                    $validated['message']
-                ),
-                'template' => $this->sendTemplateMessage(
-                    $to,
-                    $validated['template_name'],
-                    $validated['language'],
-                    $validated['parameters'] ?? []
-                ),
-                'image' => $this->whatsAppService->sendImage(
-                    $to,
-                    $validated['message'],
-                    $validated['caption'] ?? null
-                ),
-                'document' => $this->whatsAppService->sendDocument(
-                    $to,
-                    $validated['message'],
-                    $validated['filename'] ?? null,
-                    $validated['caption'] ?? null
-                ),
-                default => throw new \Exception('Invalid message type'),
-            };
+            if ($request->hasFile('file')) {
+                // Upload media to WhatsApp
+                $mediaId = $this->whatsAppService->uploadMedia($request->file('file'));
+
+                if (!$mediaId) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Failed to upload media to WhatsApp',
+                    ], 500);
+                }
+
+                // If file is present, 'message' field is treated as caption
+                $caption = $validated['caption'] ?? $validated['message'] ?? null;
+
+                $result = match ($type) {
+                    'image' => $this->whatsAppService->sendImage(
+                        $to,
+                        $mediaId,
+                        $caption,
+                        false // isUrl = false
+                    ),
+                    'document' => $this->whatsAppService->sendDocument(
+                        $to,
+                        $mediaId,
+                        $validated['filename'] ?? $request->file('file')->getClientOriginalName(),
+                        $caption,
+                        false // isUrl = false
+                    ),
+                    default => throw new \Exception('File upload is not supported for this message type'),
+                };
+            } else {
+                // Handle text or URL-based media
+                $result = match ($type) {
+                    'text' => $this->whatsAppService->sendTextMessage(
+                        $to,
+                        $validated['message'] ?? ''
+                    ),
+                    'template' => $this->sendTemplateMessage(
+                        $to,
+                        $validated['template_name'],
+                        $validated['language'],
+                        $validated['parameters'] ?? []
+                    ),
+                    'image' => $this->whatsAppService->sendImage(
+                        $to,
+                        $validated['message'], // URL
+                        $validated['caption'] ?? null
+                    ),
+                    'document' => $this->whatsAppService->sendDocument(
+                        $to,
+                        $validated['message'], // URL
+                        $validated['filename'] ?? null,
+                        $validated['caption'] ?? null
+                    ),
+                    default => throw new \Exception('Invalid message type'),
+                };
+            }
 
             if ($result['success']) {
                 return response()->json([

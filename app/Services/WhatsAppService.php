@@ -75,7 +75,49 @@ class WhatsAppService
     /**
      * Envoyer une image
      */
-    public function sendImage(string $to, string $imageUrl, ?string $caption = null): array
+    /**
+     * Upload media file to WhatsApp
+     * 
+     * @param \Illuminate\Http\UploadedFile $file
+     * @return string|null Media ID
+     */
+    public function uploadMedia($file): ?string
+    {
+        $url = $this->apiUrl . $this->phoneId . '/media';
+
+        try {
+            $response = Http::withToken($this->apiToken)
+                ->attach(
+                    'file',
+                    file_get_contents($file->getRealPath()),
+                    $file->getClientOriginalName()
+                )
+                ->post($url, [
+                    'messaging_product' => 'whatsapp',
+                ]);
+
+            if ($response->successful()) {
+                return $response->json()['id'] ?? null;
+            }
+
+            Log::error('WhatsApp upload media error', [
+                'response' => $response->json(),
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('WhatsApp upload media error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Envoyer une image
+     */
+    public function sendImage(string $to, string $imageIdentifier, ?string $caption = null, bool $isUrl = true): array
     {
         $payload = [
             'messaging_product' => 'whatsapp',
@@ -83,7 +125,7 @@ class WhatsAppService
             'to' => $this->formatPhoneNumber($to),
             'type' => 'image',
             'image' => [
-                'link' => $imageUrl,
+                $isUrl ? 'link' : 'id' => $imageIdentifier,
             ],
         ];
 
@@ -91,13 +133,13 @@ class WhatsAppService
             $payload['image']['caption'] = $caption;
         }
 
-        return $this->sendRequest($payload, $to, $caption ?? $imageUrl, 'image');
+        return $this->sendRequest($payload, $to, $caption ?? 'Image Sent', 'image');
     }
 
     /**
      * Envoyer un document
      */
-    public function sendDocument(string $to, string $documentUrl, ?string $filename = null, ?string $caption = null): array
+    public function sendDocument(string $to, string $docIdentifier, ?string $filename = null, ?string $caption = null, bool $isUrl = true): array
     {
         $payload = [
             'messaging_product' => 'whatsapp',
@@ -105,7 +147,7 @@ class WhatsAppService
             'to' => $this->formatPhoneNumber($to),
             'type' => 'document',
             'document' => [
-                'link' => $documentUrl,
+                $isUrl ? 'link' : 'id' => $docIdentifier,
             ],
         ];
 
@@ -117,7 +159,7 @@ class WhatsAppService
             $payload['document']['caption'] = $caption;
         }
 
-        return $this->sendRequest($payload, $to, $caption ?? $filename ?? $documentUrl, 'document');
+        return $this->sendRequest($payload, $to, $caption ?? $filename ?? 'Document Sent', 'document');
     }
 
     /**
