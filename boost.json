@@ -1,0 +1,15 @@
+{
+    "agents": [
+        "claude_code",
+        "cursor"
+    ],
+    "editors": [
+        "claude_code",
+        "codex",
+        "cursor",
+        "opencode",
+        "vscode"
+    ],
+    "guidelines": [],
+    "herd_mcp": true
+}

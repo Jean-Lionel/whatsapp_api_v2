@@ -11,15 +11,15 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class ContactController extends Controller
 {
     public function sideBarContacts(Request $request){
-        $collection = Message::with('contact')->latest()->get()
-        ->unique('to_number')
+        $collection = Message::latest()->get()
+        ->unique('from_number')
         ->map(fn ($m) => [
-            'name' => $m->contact->name ?? $m->to_number,
-            'phone' => $m->to_number ?? null,
+            'name' => $m->from_number,
+            'phone' => $m->from_number,
             'last_message' => $m->body,
             'last_message_at' => $m->created_at,
-            'unread_count' => rand(0, 10),
-            'avatar' => 'https://ui-avatars.com/api/?name='.($m->contact->name ?? $m->to_number).'&background=0D8ABC&color=fff',
+            'unread_count' => Message::where('from_number', $m->from_number)->where('status', '!=', 'read')->count(),
+            'avatar' => 'https://ui-avatars.com/api/?name='.$m->from_number.'&background=0D8ABC&color=fff',
             ])
             ->values();
             

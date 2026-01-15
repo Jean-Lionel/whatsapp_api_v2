@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Contact;
 use Illuminate\Console\Command;
 
 class HackerCommand extends Command
@@ -26,6 +27,12 @@ class HackerCommand extends Command
     public function handle()
     {
         //
+        for ($i = 0; $i < 10; $i++) {
+            $this->info('');
+            Contact::create([
+                
+            ]);
+        }
         $this->info('Hacker command executed');
     }
 }
