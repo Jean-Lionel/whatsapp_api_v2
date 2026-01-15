@@ -48,9 +48,26 @@ class WebhookController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+    /**
+     * Handle the incoming request (POST).
+     *
+     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
+     */
     public function handle(Request $request)
     {
         $data = $request->all();
+        
+        // Generate a unique hash for the payload to prevent duplicate WhatsappData entries
+        $payloadHash = md5(json_encode($data));
+        
+        if (cache()->has("webhook_processed_{$payloadHash}")) {
+            Log::info('Webhook duplicate skipped', ['hash' => $payloadHash]);
+            return response()->json(['status' => 'duplicate_skipped'], 200);
+        }
+
+        // Cache the hash for 10 minutes
+        cache()->put("webhook_processed_{$payloadHash}", true, 600);
+
         Log::info('Webhook received', ['data' => $data]);
 
         // Stocker le payload brut dans whatsapp_data
@@ -60,7 +77,7 @@ class WebhookController extends Controller
         ]);
 
         // Parser et stocker les messages
-        $this->processMessages($data, $whatsappData);
+        $this->processMessages($whatsappData);
 
         return response()->json(['status' => 'ok'], 200);
     }
@@ -68,10 +85,10 @@ class WebhookController extends Controller
     /**
      * Parse le payload WhatsApp et insère les messages dans la table messages
      */
-    protected function processMessages(array $data, WhatsappData $whatsappData)
+    protected function processMessages(WhatsappData $whatsappData)
     {
         // Les données peuvent être dans data.entry ou directement dans entry
-        $payload = $data['data'] ?? $data;
+        $payload = $whatsappData->body;
 
         if (! isset($payload['entry'])) {
             return;
@@ -121,6 +138,7 @@ class WebhookController extends Controller
         if ($existingMessage) {
             Log::info('Message already exists', ['wa_message_id' => $messageData['id']]);
 
+            // Optional: Update the payload if needed, or just ignore
             return;
         }
 
@@ -132,6 +150,9 @@ class WebhookController extends Controller
         $fromNumber = $messageData['from'];
         $contact = $this->findContactByPhone($fromNumber);
 
+        // Si le contact n'existe pas, on pourrait le créer automatiquement ici si désiré
+        // Pour l'instant on laisse null si pas trouvé, ou on dépend de la logique existante
+
         $message = Message::create([
             'contact_id' => $contact?->id,
             'wa_message_id' => $messageData['id'],
@@ -140,7 +161,7 @@ class WebhookController extends Controller
             'to_number' => $businessPhone ?? '',
             'type' => $this->mapMessageType($type),
             'body' => $body,
-            'payload' => $messageData,
+            'payload' => $messageData, // Contient toutes les infos du fichier (id, url, mime_type, etc)
             'status' => 'delivered',
             'sent_at' => $sentAt,
         ]);
@@ -148,6 +169,7 @@ class WebhookController extends Controller
         Log::info('Message stored', [
             'wa_message_id' => $messageData['id'],
             'contact_id' => $contact?->id,
+            'type' => $type
         ]);
     }
 
@@ -157,11 +179,13 @@ class WebhookController extends Controller
     protected function findContactByPhone(string $phone): ?Contact
     {
         $cleanPhone = ltrim($phone, '+');
-        $lastDigits = substr($cleanPhone, -9);
-
-        return Contact::where(function ($query) use ($cleanPhone, $lastDigits) {
-            $query->whereRaw("CONCAT(REPLACE(country_code, '+', ''), LTRIM(phone, '0')) = ?", [$cleanPhone])
-                ->orWhere('phone', 'LIKE', '%'.$lastDigits);
+        // Extract significant number (last 9 digits is usually safe for international matches without country code)
+        // But better is to try exact match first
+        
+        // Match exact (with or without +) or match ending with phone
+        return Contact::where(function ($query) use ($cleanPhone) {
+             $query->whereRaw("REPLACE(CONCAT(IFNULL(country_code, ''), IFNULL(phone, '')), '+', '') = ?", [$cleanPhone])
+                   ->orWhere('phone', $cleanPhone);
         })->first();
     }
 
@@ -172,21 +196,31 @@ class WebhookController extends Controller
     {
         return match ($type) {
             'text' => $messageData['text']['body'] ?? null,
-            'image' => $messageData['image']['caption'] ?? '[Image]',
-            'video' => $messageData['video']['caption'] ?? '[Video]',
-            'audio' => '[Audio]',
-            'document' => $messageData['document']['filename'] ?? '[Document]',
+            'image' => ($messageData['image']['caption'] ?? '') !== '' 
+                        ? '📷 ' . $messageData['image']['caption'] 
+                        : '📷 Photo',
+            'video' => ($messageData['video']['caption'] ?? '') !== '' 
+                        ? '🎥 ' . $messageData['video']['caption'] 
+                        : '🎥 Video',
+            'audio' => '🎵 Audio',
+            'voice' => '🎤 Voice Message',
+            'document' => ($messageData['document']['caption'] ?? '') !== '' 
+                        ? '📄 ' . $messageData['document']['caption'] 
+                        : '📄 ' . ($messageData['document']['filename'] ?? 'Document'),
             'location' => sprintf(
-                'Lat: %s, Long: %s',
+                '📍 Location (Lat: %s, Long: %s)',
                 $messageData['location']['latitude'] ?? '',
                 $messageData['location']['longitude'] ?? ''
             ),
-            'interactive' => $messageData['interactive']['button_reply']['title']
-                ?? $messageData['interactive']['list_reply']['title']
-                ?? '[Interactive]',
-            'button' => $messageData['button']['text'] ?? '[Button]',
-            'sticker' => '[Sticker]',
-            default => null,
+            'interactive' => isset($messageData['interactive']['list_reply']) 
+                                ? '📋 ' . $messageData['interactive']['list_reply']['title']
+                                : (isset($messageData['interactive']['button_reply']) 
+                                    ? '🔘 ' . $messageData['interactive']['button_reply']['title'] 
+                                    : 'Interactive Message'),
+            'button' => '🔘 ' . ($messageData['button']['text'] ?? 'Button'),
+            'sticker' => '💟 Sticker',
+            'reaction' => '👍 Reaction', // Or extract emoji
+            default => 'Message (' . $type . ')',
         };
     }
 
@@ -200,6 +234,9 @@ class WebhookController extends Controller
         if (in_array($type, $supportedTypes)) {
             return $type;
         }
+
+        // Map voice to audio
+        if ($type === 'voice') return 'audio';
 
         // Mapper les types non supportés vers 'text'
         return match ($type) {
@@ -216,19 +253,20 @@ class WebhookController extends Controller
         $message = Message::where('wa_message_id', $statusData['id'])->first();
 
         if (! $message) {
-            Log::info('Message not found for status update', ['wa_message_id' => $statusData['id']]);
-
+            // Pas de log d'erreur car on peut recevoir des statuts pour des vieux messages
             return;
         }
 
         $status = $statusData['status'] ?? null;
 
         if ($status && in_array($status, ['sent', 'delivered', 'read', 'failed'])) {
-            $message->update(['status' => $status]);
-
+            $updateData = ['status' => $status];
+            
             if ($status === 'read' && ! $message->read_at) {
-                $message->update(['read_at' => now()]);
+                $updateData['read_at'] = now();
             }
+
+            $message->update($updateData);
 
             Log::info('Message status updated', [
                 'wa_message_id' => $statusData['id'],
