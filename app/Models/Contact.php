@@ -28,5 +28,12 @@ class Contact extends Model
         return $countryCode . $phone;
     }
 
+    public function whatsappGroups()
+    {
+        return $this->belongsToMany(WhatsappGroup::class, 'whatsapp_group_contacts')
+                    ->withPivot('is_admin')
+                    ->withTimestamps();
+    }
+
     protected $appends = ['full_phone'];
 }
