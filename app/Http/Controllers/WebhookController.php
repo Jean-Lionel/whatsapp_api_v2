@@ -2,29 +2,60 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\WhatsappData;
 use App\Models\Message;
+use App\Models\WhatsappData;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class WebhookController extends Controller
 {
     /**
-     * Handle the incoming request.
+     * Vérification du webhook par Meta (GET request)
+     * Nécessaire lors de la configuration initiale du webhook
+     */
+    public function verify(Request $request)
+    {
+        $verifyToken = config('services.whatsapp.verify_token');
+
+        $mode = $request->query('hub_mode');
+        $token = $request->query('hub_verify_token');
+        $challenge = $request->query('hub_challenge');
+
+        Log::info('Webhook verification attempt', [
+            'mode' => $mode,
+            'token' => $token,
+            'challenge' => $challenge,
+        ]);
+
+        if ($mode === 'subscribe' && $token === $verifyToken) {
+            Log::info('Webhook verified successfully');
+
+            return response($challenge, 200)->header('Content-Type', 'text/plain');
+        }
+
+        Log::warning('Webhook verification failed', [
+            'expected_token' => $verifyToken,
+            'received_token' => $token,
+        ]);
+
+        return response('Forbidden', 403);
+    }
+
+    /**
+     * Handle the incoming request (POST).
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function handle(Request $request)
     {
         $data = $request->all();
-        Log::info("Webhook received", ['data' => $data]);
+        Log::info('Webhook received', ['data' => $data]);
 
         // Stocker le payload brut dans whatsapp_data
         $whatsappData = WhatsappData::create([
             'body' => $data,
-            'status' => 'received'
+            'status' => 'received',
         ]);
 
         // Parser et stocker les messages
@@ -41,14 +72,14 @@ class WebhookController extends Controller
         // Les données peuvent être dans data.entry ou directement dans entry
         $payload = $data['data'] ?? $data;
 
-        if (!isset($payload['entry'])) {
+        if (! isset($payload['entry'])) {
             return;
         }
 
         $data = $payload;
 
         foreach ($data['entry'] as $entry) {
-            if (!isset($entry['changes'])) {
+            if (! isset($entry['changes'])) {
                 continue;
             }
 
@@ -89,7 +120,8 @@ class WebhookController extends Controller
         // Vérifier si le message existe déjà (éviter les doublons)
         $existingMessage = Message::where('wa_message_id', $messageData['id'])->first();
         if ($existingMessage) {
-            Log::info("Message already exists", ['wa_message_id' => $messageData['id']]);
+            Log::info('Message already exists', ['wa_message_id' => $messageData['id']]);
+
             return;
         }
 
@@ -109,7 +141,7 @@ class WebhookController extends Controller
             'sent_at' => $sentAt,
         ]);
 
-        Log::info("Message stored", ['wa_message_id' => $messageData['id']]);
+        Log::info('Message stored', ['wa_message_id' => $messageData['id']]);
     }
 
     /**
@@ -162,8 +194,9 @@ class WebhookController extends Controller
     {
         $message = Message::where('wa_message_id', $statusData['id'])->first();
 
-        if (!$message) {
-            Log::info("Message not found for status update", ['wa_message_id' => $statusData['id']]);
+        if (! $message) {
+            Log::info('Message not found for status update', ['wa_message_id' => $statusData['id']]);
+
             return;
         }
 
@@ -172,13 +205,13 @@ class WebhookController extends Controller
         if ($status && in_array($status, ['sent', 'delivered', 'read', 'failed'])) {
             $message->update(['status' => $status]);
 
-            if ($status === 'read' && !$message->read_at) {
+            if ($status === 'read' && ! $message->read_at) {
                 $message->update(['read_at' => now()]);
             }
 
-            Log::info("Message status updated", [
+            Log::info('Message status updated', [
                 'wa_message_id' => $statusData['id'],
-                'status' => $status
+                'status' => $status,
             ]);
         }
     }
