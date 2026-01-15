@@ -35,6 +35,7 @@ class MessageController extends Controller
             // Marquer comme lu via l'API WhatsApp
             if ($message->wa_message_id) {
                 $this->whatsAppService->markAsRead($message->wa_message_id);
+                
             }
 
             // Mettre à jour en base de données

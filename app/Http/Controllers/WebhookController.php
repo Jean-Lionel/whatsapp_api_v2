@@ -129,7 +129,7 @@ class WebhookController extends Controller
             ? Carbon::createFromTimestamp($messageData['timestamp'])
             : now();
 
-        Message::create([
+        $message = Message::create([
             'wa_message_id' => $messageData['id'],
             'direction' => 'in',
             'from_number' => $messageData['from'],

@@ -25,3 +25,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/webhook', [WebhookController::class, 'verify']);
 Route::post('/webhook', [WebhookController::class, 'handle']);
+
+
