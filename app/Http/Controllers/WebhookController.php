@@ -87,42 +87,58 @@ class WebhookController extends Controller
      */
     protected function processMessages(WhatsappData $whatsappData)
     {
-        // Les données peuvent être dans data.entry ou directement dans entry
-        $payload = $whatsappData->body;
+        try {
+            // Les données peuvent être dans data.entry ou directement dans entry
+            $payload = $whatsappData->body;
+            Log::info('Processing WhatsApp Data', ['result_id' => $whatsappData->id]);
 
-        if (! isset($payload['entry'])) {
-            return;
-        }
-
-        $data = $payload;
-
-        foreach ($data['entry'] as $entry) {
-            if (! isset($entry['changes'])) {
-                continue;
+            // Robust extraction: Handle if wrapped in 'data' key or not
+            if (isset($payload['data']['entry'])) {
+                $entries = $payload['data']['entry'];
+            } elseif (isset($payload['entry'])) {
+                $entries = $payload['entry'];
+            } else {
+                Log::warning('Webhook processed but no entry found', ['payload_keys' => array_keys($payload)]);
+                return;
             }
-            foreach ($entry['changes'] as $change) {
-                $value = $change['value'] ?? [];
-                // Récupérer le numéro de téléphone business (to_number pour les messages entrants)
-                $businessPhone = $value['metadata']['display_phone_number'] ?? null;
 
-                // Traiter les messages entrants
-                if (isset($value['messages'])) {
-                    foreach ($value['messages'] as $message) {
-                        $this->storeIncomingMessage($message, $businessPhone, $whatsappData->id);
+            foreach ($entries as $entry) {
+                if (! isset($entry['changes'])) {
+                    continue;
+                }
+                foreach ($entry['changes'] as $change) {
+                    $value = $change['value'] ?? [];
+                    // Récupérer le numéro de téléphone business (to_number pour les messages entrants)
+                    $businessPhone = $value['metadata']['display_phone_number'] ?? null;
+
+                    // Traiter les messages entrants
+                    if (isset($value['messages'])) {
+                        foreach ($value['messages'] as $message) {
+                            $this->storeIncomingMessage($message, $businessPhone, $whatsappData->id);
+                        }
+                    }
+
+                    // Traiter les mises à jour de statut des messages sortants
+                    if (isset($value['statuses'])) {
+                        foreach ($value['statuses'] as $status) {
+                            $this->updateMessageStatus($status);
+                        }
                     }
                 }
-
-                // Traiter les mises à jour de statut des messages sortants
-                if (isset($value['statuses'])) {
-                    foreach ($value['statuses'] as $status) {
-                        $this->updateMessageStatus($status);
-                    }
-                }
             }
-        }
 
-        // Marquer le webhook comme traité
-        $whatsappData->update(['status' => 'processed']);
+            // Marquer le webhook comme traité
+            $whatsappData->update(['status' => 'processed']);
+            
+        } catch (\Exception $e) {
+            Log::error('Error processing WhatsApp webhook', [
+                'whatsapp_data_id' => $whatsappData->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Optional: mark as failed?
+            $whatsappData->update(['status' => 'failed']);
+        }
     }
 
     /**
