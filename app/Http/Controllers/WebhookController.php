@@ -83,10 +83,8 @@ class WebhookController extends Controller
             if (! isset($entry['changes'])) {
                 continue;
             }
-
             foreach ($entry['changes'] as $change) {
                 $value = $change['value'] ?? [];
-
                 // Récupérer le numéro de téléphone business (to_number pour les messages entrants)
                 $businessPhone = $value['metadata']['display_phone_number'] ?? null;
 

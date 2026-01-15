@@ -4,12 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class Contact extends Model
 {
     use HasFactory;
 
     protected $fillable = ['user_id', 'name', 'country_code', 'phone', 'email'];
+
+    public static function boot(){
+        parent::boot();
+
+        static::creating(function ($contact) {
+            $contact->user_id = Auth::id();
+        });
+    }
 
     public function user()
     {
