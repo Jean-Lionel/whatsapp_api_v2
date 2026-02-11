@@ -11,7 +11,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -46,6 +46,7 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
     public function conversations()
     {
         return $this->belongsToMany(Conversation::class)->withPivot('unread_count')->withTimestamps();
@@ -54,5 +55,25 @@ class User extends Authenticatable
     public function contacts()
     {
         return $this->hasMany(Contact::class);
+    }
+
+    public function apiKeys()
+    {
+        return $this->hasMany(ApiKey::class);
+    }
+
+    public function clientWebhooks()
+    {
+        return $this->hasMany(ClientWebhook::class);
+    }
+
+    public function whatsappConfigurations()
+    {
+        return $this->hasMany(WhatsappConfiguration::class);
+    }
+
+    public function getDefaultWhatsappConfiguration(): ?WhatsappConfiguration
+    {
+        return WhatsappConfiguration::getDefaultForUser($this->id);
     }
 }
