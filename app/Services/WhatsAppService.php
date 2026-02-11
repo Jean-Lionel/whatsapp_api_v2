@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Message;
+use App\Models\WhatsappConfiguration;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -19,13 +20,46 @@ class WhatsAppService
 
     protected string $businessAccountId;
 
-    public function __construct()
+    protected ?int $configurationId = null;
+
+    public function __construct(?array $config = null)
     {
-        $this->apiUrl = config('services.whatsapp.api_url');
-        $this->apiToken = config('services.whatsapp.api_token');
-        $this->phoneId = config('services.whatsapp.phone_id');
-        $this->phoneNumber = config('services.whatsapp.phone_number');
-        $this->businessAccountId = config('services.whatsapp.business_account_id');
+        if ($config) {
+            $this->apiUrl = $config['api_url'] ?? config('services.whatsapp.api_url');
+            $this->apiToken = $config['api_token'] ?? config('services.whatsapp.api_token');
+            $this->phoneId = $config['phone_id'] ?? config('services.whatsapp.phone_id');
+            $this->phoneNumber = $config['phone_number'] ?? config('services.whatsapp.phone_number');
+            $this->businessAccountId = $config['business_id'] ?? config('services.whatsapp.business_account_id');
+            $this->configurationId = $config['configuration_id'] ?? null;
+        } else {
+            $this->apiUrl = config('services.whatsapp.api_url');
+            $this->apiToken = config('services.whatsapp.api_token');
+            $this->phoneId = config('services.whatsapp.phone_id');
+            $this->phoneNumber = config('services.whatsapp.phone_number');
+            $this->businessAccountId = config('services.whatsapp.business_account_id');
+        }
+    }
+
+    public static function forUser(int $userId): self
+    {
+        $config = WhatsappConfiguration::getDefaultForUser($userId);
+
+        if ($config) {
+            $serviceConfig = $config->toServiceConfig();
+            $serviceConfig['configuration_id'] = $config->id;
+
+            return new self($serviceConfig);
+        }
+
+        return new self;
+    }
+
+    public static function forConfiguration(WhatsappConfiguration $config): self
+    {
+        $serviceConfig = $config->toServiceConfig();
+        $serviceConfig['configuration_id'] = $config->id;
+
+        return new self($serviceConfig);
     }
 
     /**
@@ -65,7 +99,7 @@ class WhatsAppService
             ],
         ];
 
-        if (!empty($components)) {
+        if (! empty($components)) {
             $payload['template']['components'] = $components;
         }
 
@@ -73,17 +107,14 @@ class WhatsAppService
     }
 
     /**
-     * Envoyer une image
-     */
-    /**
      * Upload media file to WhatsApp
-     * 
-     * @param \Illuminate\Http\UploadedFile $file
+     *
+     * @param  \Illuminate\Http\UploadedFile  $file
      * @return string|null Media ID
      */
     public function uploadMedia($file): ?string
     {
-        $url = $this->apiUrl . $this->phoneId . '/media';
+        $url = $this->apiUrl.$this->phoneId.'/media';
 
         try {
             $response = Http::withToken($this->apiToken)
@@ -167,7 +198,7 @@ class WhatsAppService
      */
     public function markAsRead(string $messageId): bool
     {
-        $url = $this->apiUrl . $this->phoneId . '/messages';
+        $url = $this->apiUrl.$this->phoneId.'/messages';
 
         $payload = [
             'messaging_product' => 'whatsapp',
@@ -195,7 +226,7 @@ class WhatsAppService
      */
     protected function sendRequest(array $payload, string $to, string $body, string $type = 'text'): array
     {
-        $url = $this->apiUrl . $this->phoneId . '/messages';
+        $url = $this->apiUrl.$this->phoneId.'/messages';
 
         try {
             $response = Http::withToken($this->apiToken)
@@ -204,24 +235,25 @@ class WhatsAppService
             $responseData = $response->json();
 
             if ($response->successful()) {
-                // Sauvegarder le message en base de données
                 $message = Message::create([
-                    'wa_message_id' => $responseData['messages'][0]['id'] ?? 'wamid.' . Str::random(20),
+                    'wa_message_id' => $responseData['messages'][0]['id'] ?? 'wamid.'.Str::random(20),
                     'conversation_id' => null,
                     'direction' => 'out',
-                    'from_number' => '+' . $this->phoneNumber,
+                    'from_number' => '+'.$this->phoneNumber,
                     'to_number' => $this->formatPhoneNumber($to),
                     'type' => $type,
                     'body' => $body,
                     'payload' => $type !== 'text' ? $payload : null,
                     'status' => 'sent',
                     'sent_at' => now(),
+                    'whatsapp_configuration_id' => $this->configurationId,
                 ]);
 
                 Log::info('WhatsApp message sent', [
                     'to' => $to,
                     'message_id' => $message->id,
                     'wa_message_id' => $message->wa_message_id,
+                    'configuration_id' => $this->configurationId,
                 ]);
 
                 return [
@@ -267,7 +299,7 @@ class WhatsAppService
      */
     public function getPhoneNumber(): string
     {
-        return '+' . $this->phoneNumber;
+        return '+'.$this->phoneNumber;
     }
 
     /**
@@ -275,7 +307,7 @@ class WhatsAppService
      */
     public function getAvaliableTemplate(): array
     {
-        $url = $this->apiUrl . $this->businessAccountId . '/message_templates';
+        $url = $this->apiUrl.$this->businessAccountId.'/message_templates';
 
         try {
             $response = Http::withToken($this->apiToken)
@@ -329,5 +361,10 @@ class WhatsAppService
                 'templates' => [],
             ];
         }
+    }
+
+    public function getConfigurationId(): ?int
+    {
+        return $this->configurationId;
     }
 }
