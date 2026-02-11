@@ -1,0 +1,1129 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "WhatsApp API",
+        "description": "API publique pour l'envoi de messages WhatsApp. Utilisez votre clé API pour authentifier vos requêtes.",
+        "contact": {
+            "name": "API Support",
+            "email": "support@example.com"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/api",
+            "description": "API Server"
+        }
+    ],
+    "paths": {
+        "/register": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Inscription d'un nouvel utilisateur",
+                "operationId": "5ca9493eb2d398292c38c7c6133e782b",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "John Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Utilisateur créé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "user": {
+                                            "type": "object"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "1|abc123..."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Connexion d'un utilisateur",
+                "operationId": "6e4f65f3e8bc2935ed393758b3c92b08",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "user": {
+                                            "type": "object"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "1|abc123..."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identifiants invalides"
+                    }
+                }
+            }
+        },
+        "/contacts": {
+            "get": {
+                "tags": [
+                    "Contacts"
+                ],
+                "summary": "Liste des contacts",
+                "operationId": "f1086820713b694e19fcad485f231796",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des contacts",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Contact"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Contacts"
+                ],
+                "summary": "Créer un contact",
+                "operationId": "503e70b661599d17a5efb2b487d86ac4",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "phone"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "John Doe"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "25779000000"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "example": "john@example.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Contact créé"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/messages": {
+            "get": {
+                "tags": [
+                    "Messages"
+                ],
+                "summary": "Liste des messages",
+                "operationId": "76e41d3e9f69dccb00b8ec9d418467db",
+                "responses": {
+                    "200": {
+                        "description": "Liste des messages",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Message"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/send_whatsapp": {
+            "post": {
+                "tags": [
+                    "Messages"
+                ],
+                "summary": "Envoyer un message WhatsApp",
+                "description": "Envoie un message texte ou template via l'API WhatsApp Business",
+                "operationId": "7f7015e78a5b5a7e525b659bab204517",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "phone",
+                                    "message"
+                                ],
+                                "properties": {
+                                    "phone": {
+                                        "description": "Numéro de téléphone avec indicatif pays",
+                                        "type": "string",
+                                        "example": "25779000000"
+                                    },
+                                    "message": {
+                                        "description": "Contenu du message",
+                                        "type": "string",
+                                        "example": "Bonjour, comment allez-vous?"
+                                    },
+                                    "template": {
+                                        "description": "Nom du template (optionnel)",
+                                        "type": "string",
+                                        "example": "hello_world"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Message envoyé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message_id": {
+                                            "type": "string",
+                                            "example": "wamid.xxxxx"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    },
+                    "429": {
+                        "description": "Rate limit dépassé"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api-keys": {
+            "get": {
+                "tags": [
+                    "API Keys"
+                ],
+                "summary": "Liste des clés API",
+                "operationId": "b5377c9da68e9722cd4a10388ae62c79",
+                "responses": {
+                    "200": {
+                        "description": "Liste des clés API",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ApiKey"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "API Keys"
+                ],
+                "summary": "Créer une clé API",
+                "operationId": "abece4b1fbb8b38401c21e249b7c047e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Production Key"
+                                    },
+                                    "scopes": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "enum": [
+                                                "read",
+                                                "write",
+                                                "send_messages"
+                                            ]
+                                        },
+                                        "example": [
+                                            "read",
+                                            "write",
+                                            "send_messages"
+                                        ]
+                                    },
+                                    "rate_limit": {
+                                        "type": "integer",
+                                        "maximum": 1000,
+                                        "minimum": 10,
+                                        "example": 100
+                                    },
+                                    "expires_in_days": {
+                                        "type": "integer",
+                                        "maximum": 365,
+                                        "minimum": 1,
+                                        "example": 90
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Clé API créée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "key": {
+                                                    "description": "La clé complète (affichée une seule fois)",
+                                                    "type": "string"
+                                                },
+                                                "scopes": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "warning": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/webhooks": {
+            "get": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Liste des webhooks",
+                "operationId": "9d7e564c968fdfc9385f034750991686",
+                "responses": {
+                    "200": {
+                        "description": "Liste des webhooks",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Webhook"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Créer un webhook",
+                "description": "Crée un webhook pour recevoir des notifications sur votre endpoint",
+                "operationId": "d8b31f74270c953b3ba909dc7185cf58",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "url",
+                                    "events"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "My Webhook"
+                                    },
+                                    "url": {
+                                        "type": "string",
+                                        "format": "uri",
+                                        "example": "https://myapp.com/webhook"
+                                    },
+                                    "events": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "enum": [
+                                                "message.received",
+                                                "message.sent",
+                                                "message.failed",
+                                                "contact.created",
+                                                "contact.updated",
+                                                "*"
+                                            ]
+                                        },
+                                        "example": [
+                                            "message.received",
+                                            "message.sent"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Webhook créé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "url": {
+                                                    "type": "string"
+                                                },
+                                                "secret": {
+                                                    "description": "Le secret pour valider les signatures (affiché une seule fois)",
+                                                    "type": "string"
+                                                },
+                                                "events": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "warning": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/webhooks/{id}/test": {
+            "post": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Tester un webhook",
+                "description": "Envoie une requête de test à votre endpoint webhook",
+                "operationId": "f7d8c7b72f6fc3fe74c122a2ef2b5ba9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Test réussi"
+                    },
+                    "502": {
+                        "description": "Le webhook n'a pas répondu correctement"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/whatsapp-configurations": {
+            "get": {
+                "tags": [
+                    "WhatsApp Configurations"
+                ],
+                "summary": "Liste des configurations WhatsApp",
+                "description": "Récupère toutes les configurations WhatsApp de l'utilisateur",
+                "operationId": "0370174068adc95d35b20a4b4370cd36",
+                "responses": {
+                    "200": {
+                        "description": "Liste des configurations",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/WhatsappConfiguration"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "WhatsApp Configurations"
+                ],
+                "summary": "Créer une configuration WhatsApp",
+                "description": "Crée une nouvelle configuration WhatsApp pour l'utilisateur",
+                "operationId": "44714f1fb4ce16dfe3d6d8b745d7e5a7",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "api_token",
+                                    "phone_id",
+                                    "phone_number",
+                                    "business_id"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Production WhatsApp"
+                                    },
+                                    "api_url": {
+                                        "type": "string",
+                                        "example": "https://graph.facebook.com/v22.0/"
+                                    },
+                                    "api_version": {
+                                        "type": "string",
+                                        "example": "v22.0"
+                                    },
+                                    "api_token": {
+                                        "description": "Token d'accès WhatsApp Business API",
+                                        "type": "string"
+                                    },
+                                    "phone_id": {
+                                        "type": "string",
+                                        "example": "123456789"
+                                    },
+                                    "phone_number": {
+                                        "type": "string",
+                                        "example": "25779000000"
+                                    },
+                                    "business_id": {
+                                        "type": "string",
+                                        "example": "987654321"
+                                    },
+                                    "verify_token": {
+                                        "description": "Token de vérification webhook",
+                                        "type": "string"
+                                    },
+                                    "is_default": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Configuration créée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/whatsapp-configurations/{id}/set-default": {
+            "post": {
+                "tags": [
+                    "WhatsApp Configurations"
+                ],
+                "summary": "Définir comme configuration par défaut",
+                "operationId": "7fe3520b74f26e4f846e8ceaca05a1a1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Configuration définie par défaut"
+                    },
+                    "404": {
+                        "description": "Configuration non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/whatsapp-configurations/{id}/test": {
+            "post": {
+                "tags": [
+                    "WhatsApp Configurations"
+                ],
+                "summary": "Tester la connexion WhatsApp",
+                "description": "Teste la connexion à l'API WhatsApp avec cette configuration",
+                "operationId": "713e6a69548becb82d94f0974db64ea0",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Connection successful"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "templates_count": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Échec de la connexion"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Contact": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "example": "25779000000"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "john@example.com"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Message": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "phone": {
+                        "type": "string",
+                        "example": "25779000000"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Bonjour!"
+                    },
+                    "direction": {
+                        "type": "string",
+                        "enum": [
+                            "incoming",
+                            "outgoing"
+                        ]
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "sent"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ApiKey": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Production Key"
+                    },
+                    "key_preview": {
+                        "type": "string",
+                        "example": "wapi_abc123..."
+                    },
+                    "scopes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "read",
+                            "write",
+                            "send_messages"
+                        ]
+                    },
+                    "rate_limit": {
+                        "type": "integer",
+                        "example": 100
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Webhook": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "My Webhook"
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://myapp.com/webhook"
+                    },
+                    "events": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "message.received",
+                            "message.sent"
+                        ]
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "failure_count": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "WhatsappConfiguration": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Production WhatsApp"
+                    },
+                    "api_url": {
+                        "type": "string",
+                        "example": "https://graph.facebook.com/v22.0/"
+                    },
+                    "api_version": {
+                        "type": "string",
+                        "example": "v22.0"
+                    },
+                    "phone_id": {
+                        "type": "string",
+                        "example": "123456789"
+                    },
+                    "phone_number": {
+                        "type": "string",
+                        "example": "25779000000"
+                    },
+                    "business_id": {
+                        "type": "string",
+                        "example": "987654321"
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "is_default": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Error": {
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Invalid API key"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "The provided API key is invalid or expired"
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "ApiKeyAuth": {
+                "type": "apiKey",
+                "description": "Clé API obtenue via le dashboard. Format: wapi_xxxxx",
+                "name": "X-API-Key",
+                "in": "header"
+            },
+            "BearerAuth": {
+                "type": "http",
+                "description": "Token Sanctum pour l'accès au dashboard",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentication",
+            "description": "Inscription et connexion"
+        },
+        {
+            "name": "Contacts",
+            "description": "Gestion des contacts WhatsApp"
+        },
+        {
+            "name": "Messages",
+            "description": "Envoi et consultation des messages"
+        },
+        {
+            "name": "API Keys",
+            "description": "Gestion des clés API"
+        },
+        {
+            "name": "Webhooks",
+            "description": "Configuration des webhooks client"
+        },
+        {
+            "name": "WhatsApp Configurations",
+            "description": "Gestion des configurations WhatsApp multi-clients"
+        }
+    ]
+}
