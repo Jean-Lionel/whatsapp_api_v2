@@ -23,6 +23,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             MessageSeeder::class,
+            WhatsappConfigurationSeeder::class,
+            ApiKeySeeder::class,
         ]);
     }
 }
